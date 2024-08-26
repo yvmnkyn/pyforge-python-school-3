@@ -9,4 +9,5 @@ services:
       - ./src:/app
     environment:
       - ENV=development
-    command: pytest /app/test_main.py  
+    command: >
+      sh -c "pip install pytest httpx && pytest /app/test_main.py"

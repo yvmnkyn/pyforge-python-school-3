@@ -5,8 +5,7 @@ FROM continuumio/miniconda3
 WORKDIR /app
 
 # Install FastAPI and Uvicorn
-RUN pip install fastapi uvicorn
-
+RUN pip install fastapi uvicorn httpx
 
 # Install RDKit from conda-forge
 RUN conda install -c conda-forge rdkit
