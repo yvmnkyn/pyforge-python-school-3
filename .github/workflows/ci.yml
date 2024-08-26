@@ -1,0 +1,33 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      docker:
+        image: docker:19.03.12
+        options: --privileged
+        ports:
+          - 2375:2375
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.12.4'  
+
+    - name: Install dependencies
+      run: |
+        pip install fastapi uvicorn pytest flake8
+
+    - name: Run tests
+      run: docker-compose up --abort-on-container-exit --exit-code-from web
+
+    - name: Run flake8
+      run: flake8 .
