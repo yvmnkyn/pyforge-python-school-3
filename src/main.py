@@ -20,7 +20,9 @@ class MoleculeUpdate(BaseModel):
 @app.post("/molecules/", status_code=201)
 def add_molecule(molecule: Molecule):
     if molecule.identifier in molecules:
-        raise HTTPException(status_code=400, detail="Identifier already exists")
+        raise HTTPException(
+            status_code=400, detail="Identifier already exists"
+        )
     molecules[molecule.identifier] = molecule.smiles
     return molecule
 
