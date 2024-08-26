@@ -61,7 +61,9 @@ def list_molecules():
 def substructure_search(substructure_smiles: str) -> List[str]:
     substructure = Chem.MolFromSmiles(substructure_smiles)
     if not substructure:
-        raise HTTPException(status_code=400, detail="Invalid substructure SMILES")
+        raise HTTPException(
+            status_code=400, detail="Invalid substructure SMILES"
+        )
 
     matching_ids = []
     for identifier, smiles in molecules.items():

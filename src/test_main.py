@@ -43,7 +43,9 @@ def test_list_molecules():
 def test_substructure_search():
     molecules["mol1"] = "CCO"
     molecules["mol2"] = "CCN"
-    response = client.get("/substructure_search/", params={"substructure": "CC"})
+    response = client.get(
+        "/substructure_search/", params={"substructure": "CC"}
+    )
     assert response.status_code == 200
     assert len(response.json()) == 2  # Both molecules should match
 
