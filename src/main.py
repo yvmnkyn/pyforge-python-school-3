@@ -55,7 +55,6 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Dict, List
 from rdkit import Chem
-from rdkit.Chem import Draw
 
 app = FastAPI()
 
@@ -105,28 +104,35 @@ def delete_molecule(identifier: str):
 
 @app.get("/molecules/", response_model=List[Molecule])
 def list_molecules():
-    return [Molecule(identifier=identifier, smiles=smiles) for identifier, smiles in molecules.items()]
+    return [
+        Molecule(identifier=identifier, smiles=smiles)
+        for identifier, smiles in molecules.items()
+    ]
 
 
 def substructure_search(substructure_smiles: str) -> List[str]:
     substructure = Chem.MolFromSmiles(substructure_smiles)
     if not substructure:
         raise HTTPException(status_code=400, detail="Invalid substructure SMILES")
-    
+
     matching_ids = []
     for identifier, smiles in molecules.items():
         molecule = Chem.MolFromSmiles(smiles)
         if molecule and molecule.HasSubstructMatch(substructure):
             matching_ids.append(identifier)
-    
+
     return matching_ids
 
 
 @app.get("/substructure_search/", response_model=List[Molecule])
 def search_substructure(substructure: str):
     matching_ids = substructure_search(substructure)
-    result = [Molecule(identifier=identifier, smiles=molecules[identifier]) for identifier in matching_ids]
+    result = [
+        Molecule(identifier=identifier, smiles=molecules[identifier])
+        for identifier in matching_ids
+    ]
     return result
+
 
 @app.get("/")
 def read_root():
