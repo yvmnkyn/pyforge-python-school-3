@@ -1,7 +1,7 @@
 from sqlalchemy import select
-from src.database import async_session_maker
-from src.molecules.models import MoleculeModel
-from src.dao.base import BaseDAO
+from database import async_session_maker
+from molecules.models import MoleculeModel
+from dao.base import BaseDAO
 from rdkit import Chem
 
 class MoleculeDAO(BaseDAO):

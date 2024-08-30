@@ -93,13 +93,18 @@
 #     import uvicorn
 #     uvicorn.run(app, host="0.0.0.0", port=8000)
 
+import logging
 from fastapi import FastAPI
 from molecules.router import router as molecule_router
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
 @app.get("/")
 def home_page():
+    logger.info("Home page accessed")
     return {"message": "Welcome to the Molecule App!"}
 
 app.include_router(molecule_router)

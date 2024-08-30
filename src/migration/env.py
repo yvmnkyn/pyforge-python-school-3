@@ -1,5 +1,6 @@
 import asyncio
 from logging.config import fileConfig
+from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import create_async_engine
 
 
@@ -14,8 +15,16 @@ from os.path import dirname, abspath
 
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 
-from src.database import DATABASE_URL, Base
-from src.molecules.models import MoleculeModel
+from database import Base  # Adjust this import based on your project structure
+from config import get_db_url
+
+import os
+
+# Load the environment variables from the .env file
+load_dotenv()
+
+# Get the DATABASE_URL from the environment
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -38,28 +47,16 @@ target_metadata = Base.metadata
 # ... etc.
 
 
-def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode.
-
-    This configures the context with just a URL
-    and not an Engine, though an Engine is acceptable
-    here as well.  By skipping the Engine creation
-    we don't even need a DBAPI to be available.
-
-    Calls to context.execute() here emit the given string to the
-    script output.
-
-    """
-    url = config.get_main_option("sqlalchemy.url")
+def run_migrations_offline()-> None:
+    """Run migrations in 'offline' mode."""
+    url = get_db_url()  # Adjust to get the correct URL from your config
     context.configure(
-        url=url,
-        target_metadata=target_metadata,
-        literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
+        url=url, target_metadata=target_metadata, literal_binds=True
     )
 
     with context.begin_transaction():
         context.run_migrations()
+
 
 
 def do_run_migrations(connection: Connection) -> None:
@@ -72,7 +69,6 @@ def do_run_migrations(connection: Connection) -> None:
 async def run_async_migrations() -> None:
     """In this scenario we need to create an Engine
     and associate a connection with the context.
-
     """
 
     connectable = create_async_engine(DATABASE_URL, poolclass=pool.NullPool)
@@ -83,13 +79,15 @@ async def run_async_migrations() -> None:
     await connectable.dispose()
 
 
-def run_migrations_online() -> None:
+
+def run_migrations_online():
     """Run migrations in 'online' mode."""
+    connectable = async_engine_from_config(
+        config.get_section(config.config_ini_section), prefix="sqlalchemy."
+    )
 
-    asyncio.run(run_async_migrations())
+    with connectable.connect() as connection:
+        context.configure(connection=connection, target_metadata=target_metadata)
 
-
-if context.is_offline_mode():
-    run_migrations_offline()
-else:
-    run_migrations_online()
+        with context.begin_transaction():
+            context.run_migrations()
