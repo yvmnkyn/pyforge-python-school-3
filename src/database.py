@@ -1,19 +1,67 @@
+# from datetime import datetime
+# from typing import Annotated
+# import asyncpg
+
+
+# from sqlalchemy import func
+# from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncAttrs
+# from sqlalchemy.orm import DeclarativeBase, declared_attr, Mapped, mapped_column
+
+# from config import get_db_url
+
+# DATABASE_URL = get_db_url()
+
+# engine = create_async_engine(DATABASE_URL)
+# async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
+
+
+# int_pk = Annotated[int, mapped_column(primary_key=True)]
+# created_at = Annotated[datetime, mapped_column(server_default=func.now())]
+# updated_at = Annotated[
+#     datetime, mapped_column(server_default=func.now(), onupdate=datetime.now)
+# ]
+# str_uniq = Annotated[str, mapped_column(unique=True, nullable=False)]
+# str_null_true = Annotated[str, mapped_column(nullable=True)]
+
+
+# class Base(AsyncAttrs, DeclarativeBase):
+#     __abstract__ = True
+
+#     @declared_attr.directive
+#     def __tablename__(cls) -> str:
+#         return f"{cls.__name__.lower()}s"
+
+#     created_at: Mapped[created_at]
+#     updated_at: Mapped[updated_at]
+
+
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, AsyncGenerator
+
 import asyncpg
-
-
+import redis.asyncio as aioredis
 from sqlalchemy import func
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncAttrs
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncAttrs, AsyncSession
 from sqlalchemy.orm import DeclarativeBase, declared_attr, Mapped, mapped_column
-
 from config import get_db_url
 
 DATABASE_URL = get_db_url()
-
 engine = create_async_engine(DATABASE_URL)
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
 
+REDIS_HOST = 'redis'
+REDIS_PORT = 6379
+REDIS_DB = 0
+
+def create_redis_client():
+    return aioredis.from_url(f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}", decode_responses=True)
+
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
+    async with async_session_maker() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
 
 int_pk = Annotated[int, mapped_column(primary_key=True)]
 created_at = Annotated[datetime, mapped_column(server_default=func.now())]
@@ -22,7 +70,6 @@ updated_at = Annotated[
 ]
 str_uniq = Annotated[str, mapped_column(unique=True, nullable=False)]
 str_null_true = Annotated[str, mapped_column(nullable=True)]
-
 
 class Base(AsyncAttrs, DeclarativeBase):
     __abstract__ = True

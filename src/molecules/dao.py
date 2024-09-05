@@ -1,46 +1,59 @@
 from sqlalchemy import select
-from database import async_session_maker
+from sqlalchemy.ext.asyncio import AsyncSession
 from molecules.models import MoleculeModel
 from dao.base import BaseDAO
-from rdkit import Chem
 
-class MoleculeDAO(BaseDAO):
-    model = MoleculeModel
+class MoleculeDAO:
+    
+    @classmethod
+    async def find_all_molecules(cls, session: AsyncSession, limit: int = 100):
+        query = select(MoleculeModel).limit(limit)
+        result = await session.execute(query)
+        return result.scalars().all()
 
     @classmethod
-    async def find_all_molecules(cls):
-        async with async_session_maker() as session:
-            query = select(cls.model)
-            result = await session.execute(query)
-            return result.scalars().all()
+    async def find_one_or_none_by_id(cls, session: AsyncSession, data_id: int):
+        query = select(MoleculeModel).filter_by(id=data_id)
+        result = await session.execute(query)
+        return result.scalars().first()
 
     @classmethod
-    async def add_molecule(cls, **molecule_data):
-        return await cls.add(**molecule_data)
+    async def add_molecule(cls, session: AsyncSession, **molecule_data):
+        new_molecule = MoleculeModel(**molecule_data)
+        session.add(new_molecule)
+        await session.commit()
+        await session.refresh(new_molecule)
+        return new_molecule
 
     @classmethod
-    async def delete_molecule_by_id(cls, molecule_id: int):
-        return await cls.delete(id=molecule_id)
+    async def update_molecule(cls, session: AsyncSession, molecule_id: int, **update_data):
+        query = select(MoleculeModel).filter_by(id=molecule_id)
+        result = await session.execute(query)
+        molecule = result.scalars().first()
+        if molecule:
+            for key, value in update_data.items():
+                setattr(molecule, key, value)
+            await session.commit()
+            await session.refresh(molecule)
+            return molecule
+        return None
 
     @classmethod
-    async def update_molecule(cls, molecule_id: int, **molecule_data):
-        return await cls.update({"id": molecule_id}, **molecule_data)
+    async def delete_molecule_by_id(cls, session: AsyncSession, molecule_id: int):
+        query = select(MoleculeModel).filter_by(id=molecule_id)
+        result = await session.execute(query)
+        molecule = result.scalars().first()
+        if molecule:
+            await session.delete(molecule)
+            await session.commit()
+            return True
+        return False
 
-    @classmethod
-    async def substructure_search(cls, substructure_smiles: str):
-        substructure = Chem.MolFromSmiles(substructure_smiles)
-        if not substructure:
-            raise ValueError("Invalid substructure SMILES")
-
-        async with async_session_maker() as session:
-            query = select(cls.model)
-            result = await session.execute(query)
-            molecules = result.scalars().all()
-
-        matching_ids = []
-        for molecule in molecules:
-            mol = Chem.MolFromSmiles(molecule.smiles)
-            if mol and mol.HasSubstructMatch(substructure):
-                matching_ids.append(molecule)
-
-        return matching_ids
+    @staticmethod
+    async def substructure_search(session: AsyncSession, substructure: str):
+        """
+        Searches for molecules that contain the given substructure.
+        """
+        query = select(MoleculeModel).where(MoleculeModel.smiles.contains(substructure))
+        result = await session.execute(query)
+        return result.scalars().all()

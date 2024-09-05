@@ -8,10 +8,9 @@ WORKDIR /app
 ENV PYTHONPATH=/app
 
 # Install necessary dependencies
-RUN pip install fastapi uvicorn[standard] pydantic sqlalchemy alembic asyncpg pydantic-settings
+RUN pip install fastapi uvicorn[standard] pydantic sqlalchemy alembic asyncpg pydantic-settings redis
 RUN conda install -c conda-forge rdkit
 RUN pip install pytest httpx
-
 
 # Copy application code to /app
 COPY ./src /app
