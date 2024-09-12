@@ -11,6 +11,7 @@ ENV PYTHONPATH=/app
 RUN pip install fastapi uvicorn[standard] pydantic sqlalchemy alembic asyncpg pydantic-settings redis
 RUN conda install -c conda-forge rdkit
 RUN pip install pytest httpx
+RUN pip install celery redis
 
 # Copy application code to /app
 COPY ./src /app

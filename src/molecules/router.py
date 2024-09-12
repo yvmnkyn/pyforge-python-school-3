@@ -2,10 +2,12 @@ import logging
 import json
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
+from celery.result import AsyncResult
 from molecules.dao import MoleculeDAO
 from molecules.schema import MoleculeResponse, MoleculeAdd
 from molecules.request_body import MoleculeUpdate
 from database import get_session
+from tasks import substructure_search_task
 
 logger = logging.getLogger(__name__)
 
@@ -56,29 +58,20 @@ async def delete_molecule_by_id(molecule_id: int, session: AsyncSession = Depend
         logger.error("Error deleting molecule with ID %s", molecule_id)
         return {"message": "Error deleting a molecule!"}
 
-@router.get("/substructure_search/", summary="Search molecules by substructure")
-async def search_substructure(substructure: str, request: Request, session: AsyncSession = Depends(get_session)) -> list[MoleculeResponse]:
-    logger.info("Searching for molecules with substructure: %s", substructure)
-    
-    # Get Redis client from the FastAPI app state
-    redis_client = request.app.state.redis_client
+# Endpoint to start the substructure search task (Celery task)
+@router.post("/substructure_search/", summary="Start a substructure search task")
+async def start_substructure_search(substructure_smiles: str):
+    task = substructure_search_task.delay(substructure_smiles)
+    return {"task_id": task.id}
 
-    # Check Redis cache for cached result
-    cache_key = f"substructure_search:{substructure}"
-    cached_result = await redis_client.get(cache_key)
+# Endpoint to check task status and get result
+@router.get("/substructure_search/{task_id}/", summary="Get substructure search result")
+async def get_substructure_search_result(task_id: str):
+    task_result = AsyncResult(task_id)
 
-    if cached_result:
-        logger.info("Returning cached result for substructure: %s", substructure)
-        return json.loads(cached_result)
-
-    try:
-        matching_molecules = await MoleculeDAO.substructure_search(session=session, substructure=substructure)
-    except ValueError as e:
-        logger.error("Error during substructure search: %s", e)
-        raise HTTPException(status_code=400, detail=str(e))
-
-    # Cache the search result for 60 seconds
-    await redis_client.setex(cache_key, 60, json.dumps([m.dict() for m in matching_molecules]))
-
-    logger.info("Found %s matching molecules", len(matching_molecules))
-    return [MoleculeResponse(identifier=molecule.identifier, smiles=molecule.smiles) for molecule in matching_molecules]
+    if task_result.state == 'PENDING':
+        return {"status": "Pending", "result": None}
+    elif task_result.state == 'SUCCESS':
+        return {"status": "Completed", "result": task_result.result}
+    else:
+        return {"status": task_result.state, "result": None}
