@@ -12,7 +12,6 @@ lambda_client = session.client('lambda')
 
 lambda_client = session.client('lambda')
 
-# Defining the event to send to Lambda function
 event = {
     "name": "Alice"
 }
