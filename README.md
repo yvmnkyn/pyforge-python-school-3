@@ -92,3 +92,31 @@ As part of our homeworks, we will try to build a web service for storing and sub
 
 - **Celery** to speed up queries
 <img title="a title" alt="Alt text" src="./images/9.png">
+
+
+
+# EC2 Deployment Workflow
+
+This repository contains a GitHub Actions workflow that automatically deploys the application to an AWS EC2 instance.
+
+## Workflow Overview
+
+1. The workflow is triggered on any push to the `main` branch.
+2. It uses SSH to securely connect to the EC2 instance and deploy the latest code.
+3. Required AWS credentials and SSH keys are stored as GitHub secrets for secure access.
+
+## Deployment Process
+
+- The workflow checks out the code and uploads it to the EC2 instance using SCP.
+- It then connects to the instance via SSH to install any necessary dependencies and runs the application.
+
+## How to Trigger
+
+Push any code changes to the `main` branch to automatically deploy the application.
+
+## AWS Setup
+
+- Ensure you have an EC2 instance running with an open SSH port.
+- The AWS credentials are securely stored as GitHub secrets.
+
+
